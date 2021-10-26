@@ -53,7 +53,7 @@ func (v *View) SetupViews(views []string) {
 }
 
 func (v *View) Wait() {
-	v.Wait()
+	v.wg.Wait()
 }
 
 func (v *View) SetCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {

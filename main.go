@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/awesome-gocui/gocui"
 	"gitlab.com/smallwood/sw-chat/key"
 	"gitlab.com/smallwood/sw-chat/view"
@@ -22,7 +24,7 @@ func main() {
 	g.SetManagerFunc(view.Handler().Layout)
 	key.SetBindings(g)
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 		panic(err)
 	}
 
