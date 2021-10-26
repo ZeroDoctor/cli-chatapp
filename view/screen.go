@@ -36,6 +36,7 @@ func (s *Screen) Layout(g *gocui.Gui) error {
 		v.Title = "screen"
 		v.Wrap = true 
 		s.view = v
+		s.g = g
 	}
 
 	return nil

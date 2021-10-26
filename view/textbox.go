@@ -31,7 +31,9 @@ func (t *TextBox) Layout(g *gocui.Gui) error {
 
 		v.Title = "textbox"
 		v.Wrap = false
+		v.Editable = true
 		t.view = v
+		t.g = g
 
 		_, err := g.SetCurrentView("textbox")
 		if err != nil {

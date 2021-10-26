@@ -4,7 +4,6 @@ import (
 "errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/awesome-gocui/gocui"
 	"gitlab.com/smallwood/sw-chat/channel"
@@ -15,6 +14,7 @@ type Header struct {
 	g    *gocui.Gui
 
 	msg string
+	cmsg string
 }
 
 func NewHeader(wg *sync.WaitGroup) *Header {
@@ -37,6 +37,7 @@ func (h *Header) Layout(g *gocui.Gui) error {
 		v.Title = "header"
 		v.Wrap = false
 		h.view = v
+		h.g = g
 	}
 
 	return nil
@@ -52,8 +53,7 @@ func (h *Header) PrintView(wg *sync.WaitGroup) {
 
 		switch data.Type {
 		case "clock":
-			nowStr := time.Now().Format("02/01/2006 15:04:05")
-			h.msg = nowStr + " | " + h.msg
+			h.cmsg = data.Object.(string) + "|"
 		}
 		h.Display()
 	}
@@ -62,7 +62,7 @@ func (h *Header) PrintView(wg *sync.WaitGroup) {
 func (h *Header) Display() {
 	h.g.UpdateAsync(func(g *gocui.Gui) error {
 		h.view.Clear()
-		fmt.Fprint(h.view, h.msg)
+		fmt.Fprint(h.view, h.cmsg + h.msg)
 		return nil
 	})
 }
