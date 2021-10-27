@@ -32,6 +32,7 @@ func (t *TextBox) Layout(g *gocui.Gui) error {
 		v.Title = "textbox"
 		v.Wrap = false
 		v.Editable = true
+		v.Editor = t
 		t.view = v
 		t.g = g
 
@@ -53,7 +54,6 @@ func (t *TextBox) PrintView(wg *sync.WaitGroup) {
 		}
 
 		switch data.Type {
-
 		}
 
 		t.Display()
@@ -67,3 +67,33 @@ func (t *TextBox) Display() {
 		return nil
 	})
 }
+
+func (t *TextBox) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	// TODO: Ctrl-Backspace
+	switch {
+	case ch != 0 && mod == 0:
+		v.EditWrite(ch)
+	case key == gocui.KeySpace:
+		v.EditWrite(' ')
+	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
+		v.EditDelete(true)
+	case key == gocui.KeyDelete:
+		v.EditDelete(false)
+	case key == gocui.KeyInsert:
+		v.Overwrite = !v.Overwrite
+	case key == gocui.KeyTab:
+		
+	case key == gocui.KeyEnter:
+		channel.MsgChan <- v.ViewBuffer() 
+		v.SetCursor(0, 0)
+		v.Clear()
+	case key == gocui.KeyArrowDown:
+	case key == gocui.KeyArrowUp:
+	case key == gocui.KeyArrowLeft:
+		v.MoveCursor(-1, 0)
+	case key == gocui.KeyArrowRight:
+		v.MoveCursor(1, 0)
+	}
+}
+
+

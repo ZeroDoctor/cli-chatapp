@@ -19,8 +19,8 @@ type Screen struct {
 func NewScreen(wg *sync.WaitGroup) *Screen {
 	s := &Screen{}
 
-        wg.Add(1)
-        go s.PrintView(wg)
+	wg.Add(1)
+	go s.PrintView(wg)
 
 	return s
 }
@@ -34,7 +34,7 @@ func (s *Screen) Layout(g *gocui.Gui) error {
 		}
 
 		v.Title = "screen"
-		v.Wrap = true 
+		v.Wrap = true
 		s.view = v
 		s.g = g
 	}
@@ -47,22 +47,21 @@ func (s *Screen) PrintView(wg *sync.WaitGroup) {
 
 	for data := range channel.ScreenChan {
 		if s.view == nil {
+			channel.ScreenChan <- data
 			continue
 		}
 
 		switch data.Type {
-
+		case "msg":
+			s.Display(data.Object.(string)+"\n")
 		}
-
-		s.Display()
 
 	}
 }
 
-func (s *Screen) Display() {
+func (s *Screen) Display(msg string) {
 	s.g.UpdateAsync(func(g *gocui.Gui) error {
-		s.view.Clear()
-		fmt.Fprint(s.view, s.msg)
+		fmt.Fprint(s.view, msg)
 		return nil
 	})
 }

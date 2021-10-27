@@ -60,3 +60,4 @@ func downScreen(g *gocui.Gui, v *gocui.View) error {
 
 	return nil
 }
+

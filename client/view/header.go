@@ -1,7 +1,7 @@
 package view
 
 import (
-"errors"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -13,7 +13,7 @@ type Header struct {
 	view *gocui.View
 	g    *gocui.Gui
 
-	msg string
+	msg  string
 	cmsg string
 }
 
@@ -48,12 +48,15 @@ func (h *Header) PrintView(wg *sync.WaitGroup) {
 
 	for data := range channel.HeaderChan {
 		if h.view == nil {
+			channel.HeaderChan <- data
 			continue
 		}
 
 		switch data.Type {
 		case "clock":
 			h.cmsg = data.Object.(string) + "|"
+		case "msg":
+			h.msg = data.Object.(string)
 		}
 		h.Display()
 	}
@@ -62,7 +65,7 @@ func (h *Header) PrintView(wg *sync.WaitGroup) {
 func (h *Header) Display() {
 	h.g.UpdateAsync(func(g *gocui.Gui) error {
 		h.view.Clear()
-		fmt.Fprint(h.view, h.cmsg + h.msg)
+		fmt.Fprint(h.view, h.cmsg+h.msg)
 		return nil
 	})
 }

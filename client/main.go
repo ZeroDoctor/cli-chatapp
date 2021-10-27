@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/awesome-gocui/gocui"
@@ -10,19 +12,25 @@ import (
 	"gitlab.com/smallwood/sw-chat/view"
 )
 
+var username string
+
 func updateClock() {
 	tick := time.NewTicker(500 * time.Millisecond)
 	defer tick.Stop()
 
 	for range tick.C {
 		nowStr := time.Now().Format("02/01/2006 15:04:05")
-		channel.HeaderChan <- channel.Data{Type: "clock", Object: nowStr}
+		select {
+		case channel.HeaderChan <- channel.Data{Type: "clock", Object: nowStr}:
+		default:
+		}
 	}
 }
 
 func update() {
 	go updateClock()
 	// other code here
+	startClient()
 }
 
 func start() {
@@ -51,5 +59,10 @@ func start() {
 }
 
 func main() {
+	fmt.Print("Enter user name: ")
+	_, err := fmt.Scanln(&username)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	start()
 }
