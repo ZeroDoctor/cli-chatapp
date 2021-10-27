@@ -10,14 +10,13 @@ import (
 )
 
 type TextBox struct {
-	view *gocui.View
 	g    *gocui.Gui
 
 	msg string
 }
 
-func NewTextBox(wg *sync.WaitGroup) *TextBox {
-	t := &TextBox{}
+func NewTextBox(g *gocui.Gui, wg *sync.WaitGroup) *TextBox {
+	t := &TextBox{g: g}
 	return t
 }
 
@@ -33,8 +32,6 @@ func (t *TextBox) Layout(g *gocui.Gui) error {
 		v.Wrap = false
 		v.Editable = true
 		v.Editor = t
-		t.view = v
-		t.g = g
 
 		_, err := g.SetCurrentView("textbox")
 		if err != nil {
@@ -49,27 +46,28 @@ func (t *TextBox) PrintView(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for data := range channel.TextBoxChan {
-		if t.view == nil {
-			continue
-		}
-
 		switch data.Type {
 		}
 
-		t.Display()
+		t.Display(t.msg)
 	}
 }
 
-func (t *TextBox) Display() {
+func (t *TextBox) Display(msg string) {
 	t.g.UpdateAsync(func(g *gocui.Gui) error {
-		t.view.Clear()
-		fmt.Fprint(t.view, t.msg)
+		v, err := g.View("textbox")
+		if err != nil {
+			return err
+		}
+		v.Clear()
+		fmt.Fprint(v, msg)
 		return nil
 	})
 }
 
 func (t *TextBox) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 	// TODO: Ctrl-Backspace
+        // TODO: Ctrl-Arrow_Keys
 	switch {
 	case ch != 0 && mod == 0:
 		v.EditWrite(ch)
@@ -82,9 +80,9 @@ func (t *TextBox) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier
 	case key == gocui.KeyInsert:
 		v.Overwrite = !v.Overwrite
 	case key == gocui.KeyTab:
-		
+
 	case key == gocui.KeyEnter:
-		channel.MsgChan <- v.ViewBuffer() 
+		channel.MsgChan <- v.ViewBuffer()
 		v.SetCursor(0, 0)
 		v.Clear()
 	case key == gocui.KeyArrowDown:
@@ -95,5 +93,3 @@ func (t *TextBox) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier
 		v.MoveCursor(1, 0)
 	}
 }
-
-

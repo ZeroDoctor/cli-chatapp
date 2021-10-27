@@ -18,18 +18,22 @@ func updateClock() {
 	tick := time.NewTicker(500 * time.Millisecond)
 	defer tick.Stop()
 
-	for range tick.C {
-		nowStr := time.Now().Format("02/01/2006 15:04:05")
+	for {
 		select {
-		case channel.HeaderChan <- channel.Data{Type: "clock", Object: nowStr}:
-		default:
+		case <-channel.GlobalShutdown:
+			return
+		case <-tick.C:
+			nowStr := time.Now().Format("02/01/2006 15:04:05")
+			select {
+			case channel.HeaderChan <- channel.Data{Type: "clock", Object: nowStr}:
+			default:
+			}
 		}
 	}
 }
 
-func update() {
+func update(g *gocui.Gui) {
 	go updateClock()
-	// other code here
 	startClient()
 }
 
@@ -45,17 +49,18 @@ func start() {
 	g.Highlight = true
 	g.SelFgColor = gocui.ColorCyan
 
-	view.Handler().SetupViews([]string{"textbox", "screen", "header"})
-	g.SetManagerFunc(view.Handler().Layout)
-	key.SetBindings(g)
+        v := view.NewView(g)
+	v.SetupViews([]string{"textbox", "screen", "header"})
+	g.SetManagerFunc(v.Layout)
+	key.SetBindings(g, v)
 
-	go update()
+	go update(g)
 
 	if err := g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 		panic(err)
 	}
 
-	view.Handler().Wait()
+	v.Wait()
 }
 
 func main() {

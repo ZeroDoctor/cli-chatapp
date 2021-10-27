@@ -10,14 +10,13 @@ import (
 )
 
 type Screen struct {
-	view *gocui.View
-	g    *gocui.Gui
+	g *gocui.Gui
 
 	msg string
 }
 
-func NewScreen(wg *sync.WaitGroup) *Screen {
-	s := &Screen{}
+func NewScreen(g *gocui.Gui, wg *sync.WaitGroup) *Screen {
+	s := &Screen{g: g}
 
 	wg.Add(1)
 	go s.PrintView(wg)
@@ -35,8 +34,6 @@ func (s *Screen) Layout(g *gocui.Gui) error {
 
 		v.Title = "screen"
 		v.Wrap = true
-		s.view = v
-		s.g = g
 	}
 
 	return nil
@@ -46,14 +43,9 @@ func (s *Screen) PrintView(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for data := range channel.ScreenChan {
-		if s.view == nil {
-			channel.ScreenChan <- data
-			continue
-		}
-
 		switch data.Type {
 		case "msg":
-			s.Display(data.Object.(string)+"\n")
+			s.Display(data.Object.(string) + "\n")
 		}
 
 	}
@@ -61,7 +53,18 @@ func (s *Screen) PrintView(wg *sync.WaitGroup) {
 
 func (s *Screen) Display(msg string) {
 	s.g.UpdateAsync(func(g *gocui.Gui) error {
-		fmt.Fprint(s.view, msg)
+		v, err := g.View("screen")
+		if err != nil {
+			return err
+		}
+
+		line := v.ViewLinesHeight()
+		_, cols := v.Size()
+		if line > cols {
+			ox, oy := v.Origin()
+			v.SetOrigin(ox, oy+1)
+		}
+		fmt.Fprintf(v, "%s", msg)
 		return nil
 	})
 }

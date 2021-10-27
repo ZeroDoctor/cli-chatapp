@@ -5,17 +5,17 @@ import (
 	"gitlab.com/smallwood/sw-chat/view"
 )
 
-func SetBindings(g *gocui.Gui) {
+func SetBindings(g *gocui.Gui, v *view.View) {
 	// global binding
-	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, view.Handler().Quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, v.Quit); err != nil {
 		panic(err)
 	}
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, view.Handler().Quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, v.Quit); err != nil {
 		panic(err)
 	}
 
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, view.Handler().NextView); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, v.NextView); err != nil {
 		panic(err)
 	}
 
@@ -34,10 +34,16 @@ func upScreen(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	ox, oy := v.Origin()
 	cx, cy := v.Cursor()
-	if err := v.SetCursor(cx, cy-5); err != nil && oy > 0 {
-		if err := v.SetOrigin(ox, oy-5); err != nil {
+	if cy > 0 {
+		if err := v.SetCursor(cx, cy-1); err != nil {
+			return err
+		}
+	}
+
+	ox, oy := v.Origin()
+	if oy > 0 {
+		if err := v.SetOrigin(ox, oy-1); err != nil {
 			return err
 		}
 	}
@@ -51,13 +57,17 @@ func downScreen(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	cx, cy := v.Cursor()
-	if err := v.SetCursor(cx, cy+5); err != nil {
+	if err := v.SetCursor(cx, cy+1); err != nil {
+		return err
+	}
+
+	_, rows := v.Size()
+	if cy > rows {
 		ox, oy := v.Origin()
-		if err := v.SetOrigin(ox, oy-5); err != nil {
+		if err := v.SetOrigin(ox, oy+1); err != nil {
 			return err
 		}
 	}
 
 	return nil
 }
-

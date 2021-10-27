@@ -3,6 +3,8 @@ module gitlab.com/smallwood/chatapp-server
 go 1.17
 
 require (
+	github.com/jmoiron/sqlx v1.3.4
+	github.com/mattn/go-sqlite3 v1.14.6
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
 )

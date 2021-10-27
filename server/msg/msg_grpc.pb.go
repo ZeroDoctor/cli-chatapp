@@ -18,7 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
-	RecvChat(ctx context.Context, in *User, opts ...grpc.CallOption) (ChatService_RecvChatClient, error)
+	InitChat(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Msgs, error)
+	RecvMessage(ctx context.Context, in *User, opts ...grpc.CallOption) (ChatService_RecvMessageClient, error)
 	SendMessage(ctx context.Context, in *Msg, opts ...grpc.CallOption) (*MsgAck, error)
 }
 
@@ -30,12 +31,21 @@ func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
 }
 
-func (c *chatServiceClient) RecvChat(ctx context.Context, in *User, opts ...grpc.CallOption) (ChatService_RecvChatClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], "/msg.ChatService/RecvChat", opts...)
+func (c *chatServiceClient) InitChat(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Msgs, error) {
+	out := new(Msgs)
+	err := c.cc.Invoke(ctx, "/msg.ChatService/InitChat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &chatServiceRecvChatClient{stream}
+	return out, nil
+}
+
+func (c *chatServiceClient) RecvMessage(ctx context.Context, in *User, opts ...grpc.CallOption) (ChatService_RecvMessageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], "/msg.ChatService/RecvMessage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &chatServiceRecvMessageClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -45,16 +55,16 @@ func (c *chatServiceClient) RecvChat(ctx context.Context, in *User, opts ...grpc
 	return x, nil
 }
 
-type ChatService_RecvChatClient interface {
+type ChatService_RecvMessageClient interface {
 	Recv() (*Msg, error)
 	grpc.ClientStream
 }
 
-type chatServiceRecvChatClient struct {
+type chatServiceRecvMessageClient struct {
 	grpc.ClientStream
 }
 
-func (x *chatServiceRecvChatClient) Recv() (*Msg, error) {
+func (x *chatServiceRecvMessageClient) Recv() (*Msg, error) {
 	m := new(Msg)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -75,7 +85,8 @@ func (c *chatServiceClient) SendMessage(ctx context.Context, in *Msg, opts ...gr
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility
 type ChatServiceServer interface {
-	RecvChat(*User, ChatService_RecvChatServer) error
+	InitChat(context.Context, *Empty) (*Msgs, error)
+	RecvMessage(*User, ChatService_RecvMessageServer) error
 	SendMessage(context.Context, *Msg) (*MsgAck, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
@@ -84,8 +95,11 @@ type ChatServiceServer interface {
 type UnimplementedChatServiceServer struct {
 }
 
-func (UnimplementedChatServiceServer) RecvChat(*User, ChatService_RecvChatServer) error {
-	return status.Errorf(codes.Unimplemented, "method RecvChat not implemented")
+func (UnimplementedChatServiceServer) InitChat(context.Context, *Empty) (*Msgs, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitChat not implemented")
+}
+func (UnimplementedChatServiceServer) RecvMessage(*User, ChatService_RecvMessageServer) error {
+	return status.Errorf(codes.Unimplemented, "method RecvMessage not implemented")
 }
 func (UnimplementedChatServiceServer) SendMessage(context.Context, *Msg) (*MsgAck, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
@@ -103,24 +117,42 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 	s.RegisterService(&ChatService_ServiceDesc, srv)
 }
 
-func _ChatService_RecvChat_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _ChatService_InitChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).InitChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/msg.ChatService/InitChat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).InitChat(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_RecvMessage_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(User)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ChatServiceServer).RecvChat(m, &chatServiceRecvChatServer{stream})
+	return srv.(ChatServiceServer).RecvMessage(m, &chatServiceRecvMessageServer{stream})
 }
 
-type ChatService_RecvChatServer interface {
+type ChatService_RecvMessageServer interface {
 	Send(*Msg) error
 	grpc.ServerStream
 }
 
-type chatServiceRecvChatServer struct {
+type chatServiceRecvMessageServer struct {
 	grpc.ServerStream
 }
 
-func (x *chatServiceRecvChatServer) Send(m *Msg) error {
+func (x *chatServiceRecvMessageServer) Send(m *Msg) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -150,14 +182,18 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ChatServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "InitChat",
+			Handler:    _ChatService_InitChat_Handler,
+		},
+		{
 			MethodName: "SendMessage",
 			Handler:    _ChatService_SendMessage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "RecvChat",
-			Handler:       _ChatService_RecvChat_Handler,
+			StreamName:    "RecvMessage",
+			Handler:       _ChatService_RecvMessage_Handler,
 			ServerStreams: true,
 		},
 	},

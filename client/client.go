@@ -21,15 +21,30 @@ func startClient() (*grpc.ClientConn, error) {
 	ctx := context.Background()
 	client := msg.NewChatServiceClient(conn)
 
+	initClient(ctx, client)
 	go recv(ctx, client)
 	go send(ctx, client)
 
 	return conn, nil
 }
 
+func initClient(ctx context.Context, client msg.ChatServiceClient) {
+	empty := &msg.Empty{}
+	messages, err := client.InitChat(ctx, empty)
+	if err != nil {
+		errStr := fmt.Sprintf("client %s failed to init [server_error=%s]", username, err.Error())
+		channel.ScreenChan <- channel.Data{Type: "msg", Object: errStr}
+		return
+	}
+
+	for _, message := range messages.Msgs {
+		channel.ScreenChan <- channel.Data{Type: "msg", Object: fmt.Sprintf("[%s] %s", message.GetSender(), message.GetMsg())}
+	}
+}
+
 func recv(ctx context.Context, client msg.ChatServiceClient) {
 	user := &msg.User{Name: username}
-	stream, err := client.RecvChat(ctx, user)
+	stream, err := client.RecvMessage(ctx, user)
 	if err != nil {
 		errStr := fmt.Sprintf("client %s failed to joined [server_error=%s]", user.Name, err.Error())
 		channel.ScreenChan <- channel.Data{Type: "msg", Object: errStr}
@@ -53,18 +68,23 @@ func recv(ctx context.Context, client msg.ChatServiceClient) {
 }
 
 func send(ctx context.Context, client msg.ChatServiceClient) {
-	for m := range channel.MsgChan {
-		ack, err := client.SendMessage(ctx, &msg.Msg{
-			Sender: &msg.User{
-				Name: username,
-			},
-			Msg: m,
-		})
-		if err != nil {
-			channel.ScreenChan <- channel.Data{Type: "msg", Object: "[ERROR] in send: "+err.Error()}
-			continue
-		}
+	for {
+		select {
+		case <-channel.GlobalShutdown:
+			return
+		case m := <-channel.MsgChan:
+			ack, err := client.SendMessage(ctx, &msg.Msg{
+				Sender: &msg.User{
+					Name: username,
+				},
+				Msg: m,
+			})
+			if err != nil {
+				channel.ScreenChan <- channel.Data{Type: "msg", Object: "[ERROR] in send: " + err.Error()}
+				continue
+			}
 
-		channel.HeaderChan <- channel.Data{Type: "msg", Object: ack.Status}
+			channel.HeaderChan <- channel.Data{Type: "msg", Object: ack.Status}
+		}
 	}
 }

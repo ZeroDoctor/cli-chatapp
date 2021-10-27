@@ -10,15 +10,14 @@ import (
 )
 
 type Header struct {
-	view *gocui.View
-	g    *gocui.Gui
+	g *gocui.Gui
 
 	msg  string
 	cmsg string
 }
 
-func NewHeader(wg *sync.WaitGroup) *Header {
-	h := &Header{}
+func NewHeader(g *gocui.Gui, wg *sync.WaitGroup) *Header {
+	h := &Header{g: g}
 
 	wg.Add(1)
 	go h.PrintView(wg)
@@ -36,8 +35,6 @@ func (h *Header) Layout(g *gocui.Gui) error {
 
 		v.Title = "header"
 		v.Wrap = false
-		h.view = v
-		h.g = g
 	}
 
 	return nil
@@ -47,25 +44,25 @@ func (h *Header) PrintView(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for data := range channel.HeaderChan {
-		if h.view == nil {
-			channel.HeaderChan <- data
-			continue
-		}
-
 		switch data.Type {
 		case "clock":
 			h.cmsg = data.Object.(string) + "|"
 		case "msg":
-			h.msg = data.Object.(string)
+			h.msg = "[" + data.Object.(string) + "]"
 		}
-		h.Display()
+		h.Display(h.cmsg + h.msg)
 	}
 }
 
-func (h *Header) Display() {
+func (h *Header) Display(msg string) {
 	h.g.UpdateAsync(func(g *gocui.Gui) error {
-		h.view.Clear()
-		fmt.Fprint(h.view, h.cmsg+h.msg)
+		v, err := g.View("header")
+		if err != nil {
+			return err
+		}
+
+		v.Clear()
+		fmt.Fprint(v, msg)
 		return nil
 	})
 }

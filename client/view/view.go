@@ -7,41 +7,34 @@ import (
 	"gitlab.com/smallwood/sw-chat/channel"
 )
 
-var instance *View
-var once sync.Once
-
-func Handler() *View {
-	once.Do(func() {
-		instance = new()
-	})
-
-	return instance
-}
-
 type View struct {
 	list        []string
 	currentView int
 	wg          sync.WaitGroup
+
+	header  *Header
+	screen  *Screen
+	textbox *TextBox
 }
 
-func new() *View {
+func NewView(g *gocui.Gui) *View {
 	v := &View{}
+	v.header = NewHeader(g, &v.wg)
+	v.screen = NewScreen(g, &v.wg)
+	v.textbox = NewTextBox(g, &v.wg)
 	return v
 }
 
 func (v *View) Layout(g *gocui.Gui) error {
-	header := NewHeader(&v.wg)
-	if err := header.Layout(g); err != nil {
+	if err := v.header.Layout(g); err != nil {
 		panic(err)
 	}
 
-	screen := NewScreen(&v.wg)
-	if err := screen.Layout(g); err != nil {
+	if err := v.screen.Layout(g); err != nil {
 		panic(err)
 	}
 
-	textbox := NewTextBox(&v.wg)
-	if err := textbox.Layout(g); err != nil {
+	if err := v.textbox.Layout(g); err != nil {
 		panic(err)
 	}
 

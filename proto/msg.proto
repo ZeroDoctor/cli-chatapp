@@ -5,7 +5,8 @@ option go_package = "gitlab.com/smallwood/proto;msg";
 package msg;
 
 service ChatService {
-  rpc RecvChat(User) returns (stream Msg) {} 
+  rpc InitChat(Empty) returns (Msgs) {}
+  rpc RecvMessage(User) returns (stream Msg) {} 
   rpc SendMessage(Msg) returns (MsgAck) {}
 }
 
@@ -18,7 +19,13 @@ message Msg {
   string msg = 2;
 }
 
+message Msgs {
+  repeated Msg msgs = 1;
+}
+
 message MsgAck {
   string status = 1;
 }
+
+message Empty {}
 

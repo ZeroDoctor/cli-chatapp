@@ -5,7 +5,7 @@ var (
 
 	HeaderChan = make(chan Data, 4)
 
-	ScreenChan = make(chan Data, 10)
+	ScreenChan = make(chan Data, 1000)
 
 	TextBoxChan = make(chan Data, 4)
 
